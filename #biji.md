@@ -1,4 +1,4 @@
-# 机器学习软件环境配置
+# 环境配置
 ## 一、下载并安装 Anaconda
 
 
@@ -52,5 +52,46 @@ import shap
 print(f"XGBoost version: {xgb.__version__}")
 print(f"Scikit-learn version: {sklearn.__version__}")
 ```
-## 启动 Jupyter Notebook
+## 启动 Jupyter Notebook 
 jupyter notebook
+
+# 线性回归——波斯顿房价预测
+```bash
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+
+# 1. 从原始 URL 获取波士顿房价数据集
+url = "https://archive.ics.uci.edu/ml/machine-learning-databases/housing/housing.data"
+feature_names = ['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'B', 'LSTAT']
+df = pd.read_csv(url, sep='\s+', names=feature_names + ['MEDV'])
+x = df[feature_names]
+y = df['MEDV']
+
+# 2.划分训练集、测试集
+xtrain,xtest,ytrain,ytest = train_test_split(x,y,test_size=0.2,random_state=125)
+
+# 3.建立线性回归模型
+model = LinearRegression().fit(xtrain,ytrain)
+
+# 4.1 获取预测值
+y_pred = model.predict(xtest)
+# 4.2 获取回归系数
+y_w = model.coef_
+# 4.3 获取截距
+y_w0 = model.intercept_ 
+### 4.4 将回归系数与特征对应
+compare_feature = [*zip(xtrain.columns,y_w)]
+
+# 5.预测结果可视化
+plt.rcParams['font.sans-serif'] = 'SimHei'
+fig = plt.figure(figsize=(10,6))
+plt.plot(range(ytest.shape[0]),ytest,color='black',linestyle='-',linewidth=1.5)
+plt.plot(range(y_pred.shape[0]),y_pred,color='red',linestyle='-.',linewidth=1.5)
+plt.xlim((0,102))
+plt.ylim((0,55))
+plt.legend(['真实值','预测值'])
+plt.show()
+```
