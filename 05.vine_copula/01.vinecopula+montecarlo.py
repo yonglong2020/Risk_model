@@ -92,12 +92,16 @@ class CategoricalDistribution:
         return res
 
     def ppf(self, q):
+        q = np.asarray(q)
+        return np.searchsorted(self.cumprobs, q, side='right')
+    
+"""     def ppf(self, q):
         # q ∈ [0,1] 映射到类别
         q = np.asarray(q)
         res = np.zeros_like(q, dtype=int)
         for k, cp in enumerate(self.cumprobs):
             res[q <= cp] = k
-        return res
+        return res """
 
 class MixtureDistribution:
     """
@@ -396,8 +400,8 @@ for var in binary_vars:
     df_samples[var] = df_samples[var].astype(int).map({0: '否', 1: '是'})
 
 # 保存CSV
-df_samples.to_csv('vine_copula_samples.csv', index=False)
-print(f"采样完成，样本已保存至 vine_copula_samples.csv (共{N_sample}行)")
+df_samples.to_csv('05.vine_copula/01.vine_copula_samples.csv', index=False)
+print(f"采样完成，样本已保存至 05.vine_copula/01.vine_copula_samples.csv (共{N_sample}行)")
 
 # ----------------------------- 可视化部分变量对 ---------------------------------
 # 选取几对代表性变量绘制散点图
