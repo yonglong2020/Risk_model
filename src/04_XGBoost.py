@@ -142,5 +142,5 @@ print("\nTop 10 重要特征:")
 print(feat_imp)
 
 # ==================== 7. 保存模型 ====================
-joblib.dump(model, '07.XGBoost/xgboost_risk_model.pkl')
+joblib.dump(model, 'output/xgboost_risk_model.pkl')
 print("\n模型已保存")

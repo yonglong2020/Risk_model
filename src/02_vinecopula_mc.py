@@ -389,6 +389,6 @@ for ax, (xname, yname) in zip(axes.flat, plot_pairs):
     ax.set_ylabel(yname)
     ax.set_title(f'{xname} vs {yname}')
 plt.tight_layout()
-plt.savefig('pair_plots.png', dpi=150)
+plt.savefig('output\pair_plots.png', dpi=150)
 plt.show()
-print("散点图已保存至 pair_plots.png")
+print("散点图已保存至 output\pair_plots.png")
