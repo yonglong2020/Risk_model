@@ -43,7 +43,7 @@ risk_cols = {var: f"{var}_risk" for var in weights_dict.keys()}
 # ------------------------------
 # 2. 读取风险分数据
 # ------------------------------
-file_path = '05.vine_copula/02.risk_scores.csv'   # 根据实际位置调整
+file_path = 'data/02_sampling/vinecopula_mc_normalized.csv'   # 根据实际位置调整
 df_risk = pd.read_csv(file_path)
 
 # 检查必要的列是否存在
@@ -82,7 +82,7 @@ df_risk['risk_level'] = df_risk['comprehensive_score'].apply(classify_risk)
 # ------------------------------
 # 5. 保存结果
 # ------------------------------
-output_path = '05.vine_copula/03.comprehensive_risk.csv'
+output_path = 'data/comp_eval_labels.csv'
 df_risk.to_csv(output_path, index=False)
 
 print(f"综合风险计算完成，结果保存至：{output_path}")

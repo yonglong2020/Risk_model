@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 # 1. 读取原始数据
-df = pd.read_csv('05.vine_copula/01.vine_copula_samples.csv')
+df = pd.read_csv('data/02_sampling/vinecopula_mc.csv')
 
 # 2. 定义风险评分函数（每个指标一个函数，输入为Series或数值，输出风险分Series）
 # 注意：部分函数依赖于其他列（如impact_range依赖hazard_type），单独处理
@@ -137,6 +137,6 @@ df_risk['wind_speed_risk'] = risk_wind_speed(df['wind_speed'])
 df_risk['illumination_risk'] = risk_illumination(df['illumination'])
 
 # 4. 保存到新CSV文件
-df_risk.to_csv('05.vine_copula/02.risk_scores.csv', index=False)
+df_risk.to_csv('data/02_sampling/vinecopula_mc_normalized.csv', index=False)
 
-print("风险分计算完成，已保存至 05.vine_copula/02.risk_scores.csv")
+print("风险分计算完成，已保存至 data/02_sampling/vinecopula_mc_normalized.csv")
