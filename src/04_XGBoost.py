@@ -72,12 +72,12 @@ print(f"训练集: {X_train.shape[0]}, 验证集: {X_val.shape[0]}, 测试集: {
 
 # ===================== 5.1. 记录超参数 =====================
 params = {
-    "max_depth": 6,
+    "max_depth": 4,
     "learning_rate": 0.1,
-    "n_estimators": 500,
-    "rounds": 20,
+    "n_estimators": 200,
+    "rounds": 5,
     "subsample": 0.8,
-    "colsample_bytree": 0.8,
+    "colsample_bytree": 0.6,
 }
 
 hp_str = f"md{params['max_depth']}_lr{params['learning_rate']}_ne{params['n_estimators']}_r{params['rounds']}"
@@ -100,6 +100,8 @@ model = xgb.XGBClassifier(
     n_estimators=params["n_estimators"],           # 树的数量
     subsample=params["subsample"],              # 每棵树随机采样80%的数据
     colsample_bytree=params["colsample_bytree"],       # 每棵树随机采样80%的特征
+    #reg_lambda=1.2,              # L2正则化项
+    #reg_alpha=0.1,               # L1正则化项
     random_state=42,            # 固定随机种子
     eval_metric='mlogloss',     # 评估指标为多分类对数损失
     callbacks=[early_stop]      # 使用早停回调函数
@@ -130,21 +132,34 @@ with open(log_filename, 'w', encoding='utf-8') as f:
             start = epoch - len(batch) + 1
             end = epoch
             log_line = f"[{start}-{end}]\tvalidation_0-mlogloss: {', '.join(batch)}"
-            print(log_line)
             f.write(log_line + "\n")
             batch = []  # 清空
-    f.write("\n")  # 空行分隔
 
     # ==================== 5.4. 评估模型 ====================
-    # 自动用时间戳做文件名，永远不覆盖
-    y_pred = model.predict(X_test)          # 预测测试集标签
-    acc = accuracy_score(y_test, y_pred)    # 计算测试集准确率
+    # 1. 训练集评估
+    train_pred = model.predict(X_train)
+    train_acc = accuracy_score(y_train, train_pred)
 
-    print(f"\n测试集准确率: {acc:.4f}")
-    f.write(f"\n测试集准确率: {acc:.4f}\n")
+    # 2. 验证集评估
+    y_pred_val = model.predict(X_val)
+    val_acc = accuracy_score(y_val, y_pred_val)
 
-    print("\n分类报告:")
-    f.write("\n分类报告:\n")
+    # 3. 测试集评估
+    y_pred = model.predict(X_test)
+    test_acc = accuracy_score(y_test, y_pred)
+
+    # 按顺序输出
+    print(f"训练集准确率: {train_acc:.4f}")
+    f.write(f"训练集准确率: {train_acc:.4f}\n")
+
+    print(f"验证集准确率: {val_acc:.4f}")
+    f.write(f"验证集准确率: {val_acc:.4f}\n")
+
+    print(f"测试集准确率: {test_acc:.4f}\n")
+    f.write(f"测试集准确率: {test_acc:.4f}\n")
+
+    print("分类报告:")
+    f.write("分类报告:\n")
 
     report = classification_report(y_test, y_pred, target_names=list(label_mapping.keys()))
     print(report)
@@ -159,12 +174,12 @@ with open(log_filename, 'w', encoding='utf-8') as f:
 
 
     # 特征重要性
-    importance = model.feature_importances_
-    feature_names = X_processed.columns.tolist()
-    feat_imp = pd.DataFrame({'feature': feature_names, 'importance': importance})
-    feat_imp = feat_imp.sort_values('importance', ascending=False).head(10)
-    print("\nTop 10 重要特征:")
-    print(feat_imp)
+    # importance = model.feature_importances_
+    # feature_names = X_processed.columns.tolist()
+    # feat_imp = pd.DataFrame({'feature': feature_names, 'importance': importance})
+    # feat_imp = feat_imp.sort_values('importance', ascending=False).head(10)
+    # print("\nTop 10 重要特征:")
+    # print(feat_imp)
 
 # ==================== 6. 保存模型 ====================
 joblib.dump(model, 'output/xgboost_risk_model.pkl')
