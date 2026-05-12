@@ -7,6 +7,7 @@ import xgboost as xgb
 from xgboost import callback
 import warnings
 import joblib
+import time
 
 warnings.filterwarnings('ignore')
 
@@ -65,9 +66,27 @@ X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.25, 
 print(f"训练集: {X_train.shape[0]}, 验证集: {X_val.shape[0]}, 测试集: {X_test.shape[0]}")
 
 
+
+
 # ==================== 5. XGBoost 模型训练 ====================
+
+# ===================== 5.1. 记录超参数 =====================
+params = {
+    "max_depth": 6,
+    "learning_rate": 0.1,
+    "n_estimators": 500,
+    "rounds": 20,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+}
+
+hp_str = f"md{params['max_depth']}_lr{params['learning_rate']}_ne{params['n_estimators']}_r{params['rounds']}"
+hp_str = hp_str.replace('.', '')
+log_filename = f"output/结果_{hp_str}_{time.strftime('%m%d%H%M')}.txt"
+
+# ===================== 5.2. 构建模型 =====================
 early_stop = callback.EarlyStopping(
-    rounds=20,                  # 如果连续50轮验证集指标没有提升则停止训练
+    rounds=params["rounds"],                  # 如果连续50轮验证集指标没有提升则停止训练
     metric_name='mlogloss',     # 监控多分类对数损失
     data_name='validation_0',   # 监控验证集
     save_best=True              # 训练过程中保存最佳模型
@@ -76,35 +95,75 @@ early_stop = callback.EarlyStopping(
 model = xgb.XGBClassifier(
     objective='multi:softmax',  # 多分类问题，使用 softmax 输出类别标签
     num_class=len(np.unique(y)),# 类别数量
-    max_depth=6,                # 树的最大深度
-    learning_rate=0.1,          # 学习率
-    n_estimators=100,           # 树的数量
-    subsample=0.8,              # 每棵树随机采样80%的数据
-    colsample_bytree=0.8,       # 每棵树随机采样80%的特征
+    max_depth=params["max_depth"],                # 树的最大深度
+    learning_rate=params["learning_rate"],          # 学习率
+    n_estimators=params["n_estimators"],           # 树的数量
+    subsample=params["subsample"],              # 每棵树随机采样80%的数据
+    colsample_bytree=params["colsample_bytree"],       # 每棵树随机采样80%的特征
     random_state=42,            # 固定随机种子
     eval_metric='mlogloss',     # 评估指标为多分类对数损失
     callbacks=[early_stop]      # 使用早停回调函数
 )
 
-model.fit(X_train, y_train, eval_set=[(X_val, y_val)])  # 在训练过程中监控验证集性能，自动保存最佳模型并在性能不提升时提前停止训练
 
-# ==================== 6. 评估 ====================
-y_pred = model.predict(X_test)          # 预测测试集标签
-acc = accuracy_score(y_test, y_pred)    # 计算测试集准确率
-print(f"\n测试集准确率: {acc:.4f}")
-print("\n分类报告:")
-print(classification_report(y_test, y_pred, target_names=list(label_mapping.keys())))
-print("混淆矩阵:")
-print(confusion_matrix(y_test, y_pred))
 
-# 特征重要性
-importance = model.feature_importances_
-feature_names = X_processed.columns.tolist()
-feat_imp = pd.DataFrame({'feature': feature_names, 'importance': importance})
-feat_imp = feat_imp.sort_values('importance', ascending=False).head(10)
-print("\nTop 10 重要特征:")
-print(feat_imp)
+with open(log_filename, 'w', encoding='utf-8') as f:
+    
+    
 
-# ==================== 7. 保存模型 ====================
+    # ===================== 5.3.训练模型 =====================
+    model.fit(X_train, y_train, eval_set=[(X_val, y_val)])  # 在训练过程中监控验证集性能，自动保存最佳模型并在性能不提升时提前停止训练
+
+     # 获取训练过程中的日志（关键！）
+    eval_results = model.evals_result()
+    val_log = eval_results['validation_0']['mlogloss']  # 损失函数名称
+
+    # 把每一轮的损失写入文件
+    batch = []
+    for epoch, loss in enumerate(val_log, 1):
+        batch.append(f"{loss:.5f}")  # 收集10个loss
+        
+        # 满10个 或 最后一轮 → 输出
+        if epoch % 10 == 0 or epoch == len(val_log):
+            start = epoch - len(batch) + 1
+            end = epoch
+            log_line = f"[{start}-{end}]\tvalidation_0-mlogloss: {', '.join(batch)}"
+            print(log_line)
+            f.write(log_line + "\n")
+            batch = []  # 清空
+    f.write("\n")  # 空行分隔
+
+    # ==================== 5.4. 评估模型 ====================
+    # 自动用时间戳做文件名，永远不覆盖
+    y_pred = model.predict(X_test)          # 预测测试集标签
+    acc = accuracy_score(y_test, y_pred)    # 计算测试集准确率
+
+    print(f"\n测试集准确率: {acc:.4f}")
+    f.write(f"\n测试集准确率: {acc:.4f}\n")
+
+    print("\n分类报告:")
+    f.write("\n分类报告:\n")
+
+    report = classification_report(y_test, y_pred, target_names=list(label_mapping.keys()))
+    print(report)
+    f.write(report + "\n")
+
+    print("混淆矩阵:")
+    f.write("混淆矩阵:\n")
+
+    cm = confusion_matrix(y_test, y_pred)
+    print(cm)
+    f.write(str(cm) + "\n")
+
+
+    # 特征重要性
+    importance = model.feature_importances_
+    feature_names = X_processed.columns.tolist()
+    feat_imp = pd.DataFrame({'feature': feature_names, 'importance': importance})
+    feat_imp = feat_imp.sort_values('importance', ascending=False).head(10)
+    print("\nTop 10 重要特征:")
+    print(feat_imp)
+
+# ==================== 6. 保存模型 ====================
 joblib.dump(model, 'output/xgboost_risk_model.pkl')
 print("\n模型已保存")
