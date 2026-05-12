@@ -112,7 +112,9 @@ with open(log_filename, 'w', encoding='utf-8') as f:
     
 
     # ===================== 5.3.训练模型 =====================
-    model.fit(X_train, y_train, eval_set=[(X_val, y_val)])  # 在训练过程中监控验证集性能，自动保存最佳模型并在性能不提升时提前停止训练
+    class_weights = compute_class_weight('balanced', classes=np.unique(y_train), y=y_train)
+    sample_weights = class_weights[y_train]
+    model.fit(X_train, y_train, sample_weight=sample_weights, eval_set=[(X_val, y_val)])  # 在训练过程中监控验证集性能，自动保存最佳模型并在性能不提升时提前停止训练
 
      # 获取训练过程中的日志（关键！）
     eval_results = model.evals_result()
