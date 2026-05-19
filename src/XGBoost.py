@@ -12,7 +12,7 @@ import time
 warnings.filterwarnings('ignore')
 
 # ==================== 1. 读取数据 ====================
-data_path = "data/03_labeled/Dataset.csv"
+data_path = "data/Dataset.csv"
 df = pd.read_csv(data_path)
 print(f"原始数据集形状: {df.shape}")
 X_raw = df.iloc[:, :23].copy()  # 前23列为特征
@@ -72,17 +72,20 @@ print(f"训练集: {X_train.shape[0]}, 验证集: {X_val.shape[0]}, 测试集: {
 
 # ===================== 5.1. 记录超参数 =====================
 params = {
-    "max_depth": 4,
-    "learning_rate": 0.1,
+    "max_depth": 3,
+    "learning_rate": 0.2922593219754514,
     "n_estimators": 200,
     "rounds": 5,
-    "subsample": 0.8,
-    "colsample_bytree": 0.6,
+    "subsample": 0.7775828743684965,
+    "colsample_bytree": 0.5263078522792244,
+    "min_child_weight": 1,
+    "reg_alpha": 2.9396807865916868e-08,
+    "reg_lambda": 0.000853752915728825
 }
 
 hp_str = f"md{params['max_depth']}_lr{params['learning_rate']}_ne{params['n_estimators']}_r{params['rounds']}"
 hp_str = hp_str.replace('.', '')
-log_filename = f"output/结果_{hp_str}_{time.strftime('%m%d%H%M')}.txt"
+log_filename = f"output/{time.strftime('%m-%d_%H%M')}_{hp_str}.txt"
 
 # ===================== 5.2. 构建模型 =====================
 early_stop = callback.EarlyStopping(
@@ -100,11 +103,12 @@ model = xgb.XGBClassifier(
     n_estimators=params["n_estimators"],           # 树的数量
     subsample=params["subsample"],              # 每棵树随机采样80%的数据
     colsample_bytree=params["colsample_bytree"],       # 每棵树随机采样80%的特征
-    #reg_lambda=1.2,              # L2正则化项
-    #reg_alpha=0.1,               # L1正则化项
+    reg_lambda=params["reg_lambda"],              # L2正则化项
+    reg_alpha=params["reg_alpha"],               # L1正则化项
     random_state=42,            # 固定随机种子
     eval_metric='mlogloss',     # 评估指标为多分类对数损失
-    callbacks=[early_stop]      # 使用早停回调函数
+    callbacks=[early_stop],      # 使用早停回调函数
+    min_child_weight=params["min_child_weight"],  # 最小子权重，控制过拟合
 )
 
 
@@ -119,21 +123,21 @@ with open(log_filename, 'w', encoding='utf-8') as f:
     model.fit(X_train, y_train, sample_weight=sample_weights, eval_set=[(X_val, y_val)])  # 在训练过程中监控验证集性能，自动保存最佳模型并在性能不提升时提前停止训练
 
      # 获取训练过程中的日志（关键！）
-    eval_results = model.evals_result()
-    val_log = eval_results['validation_0']['mlogloss']  # 损失函数名称
+    # eval_results = model.evals_result()
+    # val_log = eval_results['validation_0']['mlogloss']  # 损失函数名称
 
-    # 把每一轮的损失写入文件
-    batch = []
-    for epoch, loss in enumerate(val_log, 1):
-        batch.append(f"{loss:.5f}")  # 收集10个loss
+    # # 把每一轮的损失写入文件
+    # batch = []
+    # for epoch, loss in enumerate(val_log, 1):
+    #     batch.append(f"{loss:.5f}")  # 收集10个loss
         
-        # 满10个 或 最后一轮 → 输出
-        if epoch % 10 == 0 or epoch == len(val_log):
-            start = epoch - len(batch) + 1
-            end = epoch
-            log_line = f"[{start}-{end}]\tvalidation_0-mlogloss: {', '.join(batch)}"
-            f.write(log_line + "\n")
-            batch = []  # 清空
+    #     # 满10个 或 最后一轮 → 输出
+    #     if epoch % 10 == 0 or epoch == len(val_log):
+    #         start = epoch - len(batch) + 1
+    #         end = epoch
+    #         log_line = f"[{start}-{end}]\tvalidation_0-mlogloss: {', '.join(batch)}"
+    #         f.write(log_line + "\n")
+    #         batch = []  # 清空
 
     # ==================== 5.4. 评估模型 ====================
     # 1. 训练集评估
