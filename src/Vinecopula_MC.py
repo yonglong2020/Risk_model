@@ -163,7 +163,7 @@ var_names = [
 ]
 n_vars = len(var_names)
 
-df = pd.read_csv(r'C:\Users\69462\OneDrive\W 文档\VScode\Risk_model\05.vine_copula\01.dematel_matrix.csv', index_col=0)
+df = pd.read_csv('data\dematel_influence_matrix.csv', index_col=0)
 dematel_matrix = df.values.astype(float)
 
 # 构造对称相关矩阵：取 (M + M^T)/2，对角线置1
@@ -342,16 +342,17 @@ for var in binary_vars:
     df_samples[var] = df_samples[var].astype(int).map({0: '否', 1: '是'})
 
 # 保存CSV
-df_samples.to_csv('data/02_sampling/vinecopula_mc.csv', index=False)
-print(f"采样完成，样本已保存至 data/02_sampling/vinecopula_mc.csv (共{N_sample}行)")
+df_samples.to_csv('data/vinecopula_mc_0519.csv', index=False)
+print(f"采样完成，样本已保存至 data/vinecopula_mc_0519.csv (共{N_sample}行)")
 
 # ----------------------------- 可视化部分变量对 ---------------------------------
 # 选取几对代表性变量绘制散点图
 fig, axes = plt.subplots(2, 3, figsize=(15, 10))
 plot_pairs = [
-    ('fatigue', 'health'),
+    ('fatigue', 'emotion'),
+    ('alcohol', 'emotion'),
     ('alcohol', 'ppe_fastened'),
-    ('skill', 'experience'),
+    ('hazard_type', 'protection_eff'),
     ('hazard_type', 'impact_range'),
     ('sensor_coverage', 'alarm_effect')
 ]
@@ -389,6 +390,6 @@ for ax, (xname, yname) in zip(axes.flat, plot_pairs):
     ax.set_ylabel(yname)
     ax.set_title(f'{xname} vs {yname}')
 plt.tight_layout()
-plt.savefig('output\pair_plots.png', dpi=150)
+plt.savefig('output\pair_plots_0519.png', dpi=150)
 plt.show()
-print("散点图已保存至 output\pair_plots.png")
+print("散点图已保存至 output\pair_plots_0519.png")
